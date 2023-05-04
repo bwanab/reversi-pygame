@@ -61,6 +61,9 @@ def main(play_ground, agent1, agent2, rounds):
 
         if game.winner == -1:
             n_black_wins += 1
+            print(f"black wins: {game.get_scores()}")
+        else:
+            print(f"white wins: {game.get_scores()}")
 
     print ('Your win rate is', n_black_wins / rounds)
 
