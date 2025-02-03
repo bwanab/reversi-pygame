@@ -8,16 +8,17 @@ import importlib
 import argparse
 from tqdm.auto import tqdm
 import copy
+import numpy as np
 
 def run_agent(agent: BaseAgent, reward: dict, obs: dict):
     action, event_type = agent.step(copy.deepcopy(reward), copy.deepcopy(obs))
     reward = play_ground.act(action, event_type) # reward after an action
     return reward
 
-def main(play_ground, agent1, agent2, rounds):
+def main(play_ground, agent1, agent2, rounds, verbose=False):
     # start our loop
     n_black_wins = 0
-    for i in tqdm(range(rounds)):
+    for i in range(rounds):
         reward1, reward2 = {}, {}
         if play_ground.game_over():
             play_ground.reset_game()
@@ -61,13 +62,13 @@ def main(play_ground, agent1, agent2, rounds):
 
         if game.winner == -1:
             n_black_wins += 1
-            print(f"black wins: {game.get_scores()}")
-        elif game.winner == 1:
-            print(f"white wins: {game.get_scores()}")
+            if verbose:
+                print(f"black wins: {game.get_scores()}")
         else:
-            print("Tie")
+            if verbose:
+                print(f"white wins: {game.get_scores()}")
 
-    print ('Your win rate is', n_black_wins / rounds)
+    print (agent1.__class__, ", ", n_black_wins, ",", agent2.__class__, ", ", rounds - n_black_wins, ", ", n_black_wins / rounds)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -78,6 +79,7 @@ if __name__ == "__main__":
     parser.add_argument('--rounds', default=10, type=int)
     parser.add_argument('--time_limit', default=30000, type=int)
     parser.add_argument('--headless', action='store_true')
+    parser.add_argument('--verbose', action='store_true')
     args = parser.parse_args()
 
     if args.headless:
@@ -85,18 +87,18 @@ if __name__ == "__main__":
         os.putenv('SDL_VIDEODRIVER', 'fbcon')
         os.environ["SDL_VIDEODRIVER"] = "dummy"
 
+
+    # init agent and game.
+
     game = Reversi(width = args.width, height = args.height, time_limit=args.time_limit)
     play_ground = Environment(game, force_fps = False)
     rev_board = ReversiBoard()
-
-    # init agent and game.
-    play_ground.init()
-    play_ground.display_screen = True
 
     agent1_module = importlib.import_module("agent."+args.agent1.split('.')[0])
     agent2_module = importlib.import_module("agent."+args.agent2.split('.')[0])
 
     agent1 = getattr(agent1_module, args.agent1.split('.')[1])(color = "black", rows_n = len(rev_board.rows), cols_n = len(rev_board.cols), width = args.width, height = args.height)
     agent2 = getattr(agent2_module, args.agent2.split('.')[1])(color = "white", rows_n = len(rev_board.rows), cols_n = len(rev_board.cols), width = args.width, height = args.height)
-    main(play_ground, agent1, agent2, args.rounds)
-
+    play_ground.init()
+    play_ground.display_screen = True
+    main(play_ground, agent1, agent2, args.rounds, args.verbose)
